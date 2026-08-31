@@ -1,0 +1,44 @@
+{
+  "manifest_version": 2,
+  "id": "com.omsociety.maibot-plugin-bilicaption",
+  "version": "1.0.0",
+  "name": "B站字幕提取解读",
+  "description": "提供获取B站视频字幕文本、解读视频内容的 LLM 工具，自动识别消息中的 B 站链接/BV 号/b23 短链",
+  "author": {
+    "name": "OMSociety",
+    "url": "https://github.com/OMSociety"
+  },
+  "license": "AGPL-3.0",
+  "urls": {
+    "repository": "https://github.com/OMSociety/maibot_plugin_bilicaption"
+  },
+  "host_application": {
+    "min_version": "1.0.0"
+  },
+  "sdk": {
+    "min_version": "1.0.0"
+  },
+  "dependencies": [
+    {
+      "type": "python_package",
+      "name": "bilibili-api-python",
+      "version_spec": ">=16.0.0"
+    },
+    {
+      "type": "python_package",
+      "name": "aiohttp",
+      "version_spec": ">=3.8.0"
+    }
+  ],
+  "plugin_type": "tool",
+  "display": {
+    "icon": {
+      "type": "emoji",
+      "value": "🎬"
+    }
+  },
+  "capabilities": ["send_message"],
+  "i18n": {
+    "default_locale": "zh-CN"
+  }
+}
