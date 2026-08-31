@@ -4,7 +4,7 @@
 
 # 🎬 BiliCaption B站字幕提取解读
 
-**B 站视频字幕提取与深度解读助手（MaiBot 插件）** —— 字幕纯文本提取 · 完整字幕通读 · 链接自动识别 · 长度可控
+**B 站视频字幕提取与深度解读助手** —— 字幕纯文本提取 · 完整字幕通读 · 链接自动识别 · 长度可控
 
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/OMSociety/maibot_plugin_bilicaption)
 [![MaiBot](https://img.shields.io/badge/MaiBot-%E2%89%A51.0-green.svg)](https://github.com/Mai-with-u/MaiBot)
