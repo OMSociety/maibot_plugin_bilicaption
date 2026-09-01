@@ -8,6 +8,7 @@ BiliCaption 核心逻辑模块（MaiBot 插件版）
 
 import logging
 import re
+from urllib.parse import urlparse
 
 import aiohttp
 from bilibili_api import Credential, video
@@ -20,6 +21,33 @@ BVID_PATTERN = re.compile(r"BV[a-zA-Z0-9]{10,12}")
 
 # b23.tv 短链域名（用于区分短链与普通链接，避免 BV 号被误判）
 B23_HOSTS = ("b23.tv", "b23.wtf")
+
+
+def _is_safe_b23_url(url: str) -> bool:
+    """校验 b23 短链 / 重定向目标 URL 是否安全（仅公网 bilibili 域）。
+
+    防 SSRF：仅放行 `b23.tv` / `b23.wtf` / `*.bilibili.com` 的 http(s) 地址，
+    其余（内网 IP、localhost、云元数据、其他域名）一律拒绝。resolve_b23
+    会跟随用户可控输入的 Location，因此每一跳都须过此校验。
+
+    Args:
+        url: 待校验的 URL。
+
+    Returns:
+        True 表示可安全请求。
+    """
+    if not url or not isinstance(url, str):
+        return False
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    if parsed.scheme not in ("http", "https"):
+        return False
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return False
+    return host in B23_HOSTS or host == "bilibili.com" or host.endswith(".bilibili.com")
 
 
 class SubtitleFetchError(Exception):
@@ -73,6 +101,11 @@ async def resolve_b23(short_url: str) -> str:
     if not short_url.startswith("http"):
         short_url = "https://" + short_url
 
+    # 初始 URL 必须是公网 b23 域（用户可控输入，防 SSRF）
+    if not _is_safe_b23_url(short_url):
+        logger.warning(f"拒绝非 b23 域的短链：{short_url}")
+        return "error"
+
     timeout = aiohttp.ClientTimeout(total=10)
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -83,6 +116,10 @@ async def resolve_b23(short_url: str) -> str:
                     next_url = response.headers.get("Location")
                     if not next_url:
                         break
+                    # 每一跳目标也必须是公网 bilibili 域（防 SSRF：Location 可被诱导到内网）
+                    if not _is_safe_b23_url(next_url):
+                        logger.warning(f"拒绝短链重定向到非法域：{next_url}")
+                        return "error"
                     real_url = next_url
     except (aiohttp.ClientError, TimeoutError) as e:
         logger.warning(f"解析 b23.tv 短链网络异常：{short_url} -> {e}")

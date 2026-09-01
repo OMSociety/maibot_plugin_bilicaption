@@ -39,7 +39,7 @@
       "value": "🎬"
     }
   },
-  "capabilities": ["send_message"],
+  "capabilities": ["component.enable", "component.disable"],
   "i18n": {
     "default_locale": "zh-CN"
   }
