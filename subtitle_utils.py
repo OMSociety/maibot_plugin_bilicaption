@@ -8,7 +8,7 @@ BiliCaption 核心逻辑模块（MaiBot 插件版）
 
 import logging
 import re
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import aiohttp
 from bilibili_api import Credential, video
@@ -116,6 +116,8 @@ async def resolve_b23(short_url: str) -> str:
                     next_url = response.headers.get("Location")
                     if not next_url:
                         break
+                    # 归一化：协议相对跳转（//…）等补全为绝对 URL 后再校验
+                    next_url = urljoin(real_url, next_url)
                     # 每一跳目标也必须是公网 bilibili 域（防 SSRF：Location 可被诱导到内网）
                     if not _is_safe_b23_url(next_url):
                         logger.warning(f"拒绝短链重定向到非法域：{next_url}")
@@ -211,7 +213,7 @@ async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, 
         raise SubtitleFetchError("网络请求异常，请稍后重试。") from e
     except Exception as e:
         logger.exception(f"获取视频信息失败: {bvid}")
-        raise SubtitleFetchError(f"处理视频时发生内部错误: {e}") from e
+        raise SubtitleFetchError("处理视频时发生内部错误，请稍后重试。") from e
 
     # 业务逻辑检查：是否有字幕数据
     if not subtitle_info or not subtitle_info.get("subtitles"):
