@@ -39,17 +39,11 @@ class PluginBaseConfig(PluginConfigBase):
     enabled: bool = Field(default=True, description="是否启用插件")
 
 
-class BiliCaptionConfig(PluginConfigBase):
-    """插件完整配置"""
+class ReadSettingsConfig(PluginConfigBase):
+    """读取设置"""
 
-    __ui_label__ = "BiliCaption 配置"
+    __ui_label__ = "读取设置"
 
-    plugin: PluginBaseConfig = Field(
-        default_factory=PluginBaseConfig, description="插件基础配置"
-    )
-    bilibili_cookie: BiliCookieConfig = Field(
-        default_factory=BiliCookieConfig, description="B站Cookie"
-    )
     max_subtitle_length: int = Field(
         default=0,
         description="bilibili_caption 字幕最大返回长度（字符数），0表示不限制",
@@ -68,6 +62,22 @@ class BiliCaptionConfig(PluginConfigBase):
     )
 
 
+class BiliCaptionConfig(PluginConfigBase):
+    """插件完整配置"""
+
+    __ui_label__ = "BiliCaption 配置"
+
+    plugin: PluginBaseConfig = Field(
+        default_factory=PluginBaseConfig, description="插件基础配置"
+    )
+    bilibili_cookie: BiliCookieConfig = Field(
+        default_factory=BiliCookieConfig, description="B站Cookie"
+    )
+    read_settings: ReadSettingsConfig = Field(
+        default_factory=ReadSettingsConfig, description="读取设置"
+    )
+
+
 class BiliCaptionPlugin(MaiBotPlugin):
     """B站字幕提取解读插件"""
 
@@ -80,7 +90,7 @@ class BiliCaptionPlugin(MaiBotPlugin):
                 "SESSDATA 未配置：B 站字幕接口需要登录态，可能无法获取 AI 字幕"
             )
         # bilibili_read 默认关闭：未启用时禁用该组件，使其不出现在 LLM 工具列表
-        if not self.config.enable_read_tool:
+        if not self.config.read_settings.enable_read_tool:
             try:
                 await self.ctx.component.disable_component(
                     "bilibili_read", "tool", scope="global"
@@ -99,7 +109,7 @@ class BiliCaptionPlugin(MaiBotPlugin):
             return
         # 配置热更新后同步 bilibili_read 的开关状态
         try:
-            if self.config.enable_read_tool:
+            if self.config.read_settings.enable_read_tool:
                 await self.ctx.component.enable_component(
                     "bilibili_read", "tool", scope="global"
                 )
@@ -156,8 +166,8 @@ class BiliCaptionPlugin(MaiBotPlugin):
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
-        subtitle_text = _truncate(subtitle_text, self.config.max_subtitle_length)
-        if self.config.auto_send_txt:
+        subtitle_text = _truncate(subtitle_text, self.config.read_settings.max_subtitle_length)
+        if self.config.read_settings.auto_send_txt:
             self.ctx.logger.warning(
                 "auto_send_txt 在 MaiBot 版暂不支持文件推送，已降级为纯文本返回"
             )
@@ -193,7 +203,7 @@ class BiliCaptionPlugin(MaiBotPlugin):
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
-        subtitle_text = _truncate(subtitle_text, self.config.read_max_subtitle_length)
+        subtitle_text = _truncate(subtitle_text, self.config.read_settings.read_max_subtitle_length)
         return {"success": True, "content": f"[完整字幕] {title}\n\n{subtitle_text}"}
 
 

@@ -90,10 +90,10 @@ git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/mai
 |:------|:-----|:-------|:-----|
 | `bilibili_cookie.sessdata` | string | `""` | B 站 SESSDATA Cookie（必需，字幕接口需要登录态） |
 | `bilibili_cookie.bili_jct` | string | `""` | B 站 bili_jct Cookie |
-| `max_subtitle_length` | int | `0` | caption 工具字幕最大字符数，`0` 表示不限制 |
-| `auto_send_txt` | bool | `false` | ⚠️ MaiBot 版暂不支持 txt 文件推送，此开关暂无效 |
-| `enable_read_tool` | bool | `false` | 启用 `bilibili_read` 深度解读工具（高 token 消耗） |
-| `read_max_subtitle_length` | int | `0` | read 工具字幕最大字符数，`0` 表示不限制（全文通读） |
+| `read_settings.max_subtitle_length` | int | `0` | caption 工具字幕最大字符数，`0` 表示不限制 |
+| `read_settings.auto_send_txt` | bool | `false` | ⚠️ MaiBot 版暂不支持 txt 文件推送，此开关暂无效 |
+| `read_settings.enable_read_tool` | bool | `false` | 启用 `bilibili_read` 深度解读工具（高 token 消耗） |
+| `read_settings.read_max_subtitle_length` | int | `0` | read 工具字幕最大字符数，`0` 表示不限制（全文通读） |
 
 ### 快速配置模板
 
@@ -102,14 +102,17 @@ git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/mai
 ```toml
 [plugin]
 config_version = "1.0.0"
-max_subtitle_length = 0
-auto_send_txt = false
-enable_read_tool = false
-read_max_subtitle_length = 0
+enabled = true
 
 [bilibili_cookie]
 sessdata = "你的SESSDATA"
 bili_jct = "你的bili_jct"
+
+[read_settings]
+max_subtitle_length = 0
+auto_send_txt = false
+enable_read_tool = false
+read_max_subtitle_length = 0
 ```
 
 ---
