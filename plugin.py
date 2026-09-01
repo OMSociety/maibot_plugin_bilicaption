@@ -25,9 +25,18 @@ class BiliCookieConfig(PluginConfigBase):
     __ui_label__ = "B站Cookie"
 
     sessdata: str = Field(
-        default="", description="B 站 SESSDATA Cookie（字幕接口需要登录态）"
+        default="",
+        description="B 站 SESSDATA Cookie（字幕接口需要登录态）",
+        json_schema_extra={
+            "label": "SESSDATA",
+            "hint": "B 站登录态 Cookie，字幕接口需要",
+        },
     )
-    bili_jct: str = Field(default="", description="B 站 bili_jct Cookie")
+    bili_jct: str = Field(
+        default="",
+        description="B 站 bili_jct Cookie",
+        json_schema_extra={"label": "bili_jct", "hint": "B 站 bili_jct Cookie"},
+    )
 
 
 class PluginBaseConfig(PluginConfigBase):
@@ -35,8 +44,16 @@ class PluginBaseConfig(PluginConfigBase):
 
     __ui_label__ = "插件基础设置"
 
-    config_version: str = Field(default="1.0.0", description="配置版本号")
-    enabled: bool = Field(default=True, description="是否启用插件")
+    config_version: str = Field(
+        default="1.0.0",
+        description="配置版本号",
+        json_schema_extra={"label": "配置版本", "disabled": True},
+    )
+    enabled: bool = Field(
+        default=True,
+        description="是否启用插件",
+        json_schema_extra={"label": "启用插件"},
+    )
 
 
 class ReadSettingsConfig(PluginConfigBase):
@@ -47,18 +64,34 @@ class ReadSettingsConfig(PluginConfigBase):
     max_subtitle_length: int = Field(
         default=0,
         description="bilibili_caption 字幕最大返回长度（字符数），0表示不限制",
+        json_schema_extra={
+            "label": "字幕返回上限",
+            "hint": "字符数，0=不限制",
+        },
     )
     auto_send_txt: bool = Field(
         default=False,
         description="是否自动将字幕保存为txt文件并发送到聊天中（MaiBot 版暂不支持文件推送，此开关暂无效）",
+        json_schema_extra={
+            "label": "自动发送 txt",
+            "hint": "MaiBot 版暂不支持文件推送，此开关暂无效",
+        },
     )
     enable_read_tool: bool = Field(
         default=False,
         description="是否启用 bilibili_read 深度解读工具（高token消耗）",
+        json_schema_extra={
+            "label": "启用深度解读工具",
+            "hint": "bilibili_read 高 token 消耗",
+        },
     )
     read_max_subtitle_length: int = Field(
         default=0,
         description="bilibili_read 工具的字幕最大返回长度（字符数），0表示不限制（全文通读）",
+        json_schema_extra={
+            "label": "通读字幕上限",
+            "hint": "字符数，0=全文通读",
+        },
     )
 
 
