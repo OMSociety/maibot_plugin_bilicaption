@@ -1,6 +1,6 @@
 {
   "manifest_version": 2,
-  "id": "github.omsociety.maibot-plugin-bilicaption",
+  "id": "omsociety.bilicaption",
   "version": "1.0.0",
   "name": "B站字幕提取解读",
   "description": "提供获取B站视频字幕文本、解读视频内容的 LLM 工具，自动识别消息中的 B 站链接/BV 号/b23 短链",
