@@ -15,7 +15,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from subtitle_utils import (
     _clean_subtitle_text,
-    _sanitize_filename,
     _truncate,
     normalize_bvid,
     resolve_b23,
@@ -75,29 +74,6 @@ class TestTruncate:
         result = _truncate("A" * 100, 10)
         assert len(result) < 50
         assert "省略" in result
-
-
-class TestSanitizeFilename:
-    """文件名清理测试"""
-
-    def test_illegal_chars_replaced(self):
-        """Windows 非法字符应被替换"""
-        result = _sanitize_filename('a\\/:*?"<>|b')
-        assert '\\/:*?"<>|' not in result
-
-    def test_truncate_long_name(self):
-        """超长名称应截断"""
-        result = _sanitize_filename("A" * 100)
-        assert len(result) <= 55  # 50 字符 + "..."
-        assert result.endswith("...")
-
-    def test_blank_fallback(self):
-        """空白名称回退为 unknown"""
-        assert _sanitize_filename("   ") == "unknown"
-
-    def test_normal_name(self):
-        """正常名称原样保留"""
-        assert _sanitize_filename("我的视频") == "我的视频"
 
 
 class TestNormalizeBvid:

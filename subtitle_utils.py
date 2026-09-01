@@ -243,21 +243,3 @@ def _truncate(text: str, max_len: int) -> str:
         logger.info(f"字幕过长 ({len(text)}字符)，已执行截断。")
         return text[:max_len] + "\n...(后续内容已省略)"
     return text
-
-
-def _sanitize_filename(name: str, max_len: int = 50) -> str:
-    """清理文件名，去除非法字符并截断。
-
-    Args:
-        name: 原始名称（如视频标题）。
-        max_len: 名称最大长度，超出部分截断。
-
-    Returns:
-        安全文件名；空输入返回 "unknown"。
-    """
-    # 替换 Windows/Linux 文件名非法字符
-    name = re.sub(r'[\\/:*?"<>|]', "_", name)
-    name = re.sub(r"\s+", " ", name).strip()
-    if len(name) > max_len:
-        name = name[:max_len].rstrip() + "..."
-    return name or "unknown"
