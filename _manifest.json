@@ -35,8 +35,9 @@
   "plugin_type": "tool",
   "display": {
     "icon": {
-      "type": "emoji",
-      "value": "🎬"
+      "type": "local",
+      "value": "logo.png",
+      "fallback": "package"
     }
   },
   "capabilities": ["component.enable", "component.disable"],

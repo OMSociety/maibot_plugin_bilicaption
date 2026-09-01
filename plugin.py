@@ -30,11 +30,23 @@ class BiliCookieConfig(PluginConfigBase):
     bili_jct: str = Field(default="", description="B 站 bili_jct Cookie")
 
 
+class PluginBaseConfig(PluginConfigBase):
+    """插件基础配置（MaiBot 运行时要求的 [plugin] 配置节）"""
+
+    __ui_label__ = "插件基础设置"
+
+    config_version: str = Field(default="1.0.0", description="配置版本号")
+    enabled: bool = Field(default=True, description="是否启用插件")
+
+
 class BiliCaptionConfig(PluginConfigBase):
     """插件完整配置"""
 
     __ui_label__ = "BiliCaption 配置"
 
+    plugin: PluginBaseConfig = Field(
+        default_factory=PluginBaseConfig, description="插件基础配置"
+    )
     bilibili_cookie: BiliCookieConfig = Field(
         default_factory=BiliCookieConfig, description="B站Cookie"
     )
