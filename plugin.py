@@ -45,7 +45,7 @@ class PluginBaseConfig(PluginConfigBase):
     __ui_label__ = "插件基础设置"
 
     config_version: str = Field(
-        default="1.0.0",
+        default="1.0.1",
         description="配置版本号",
         json_schema_extra={"label": "配置版本", "disabled": True},
     )
@@ -67,14 +67,6 @@ class ReadSettingsConfig(PluginConfigBase):
         json_schema_extra={
             "label": "字幕返回上限",
             "hint": "字符数，0=不限制",
-        },
-    )
-    auto_send_txt: bool = Field(
-        default=False,
-        description="是否自动将字幕保存为txt文件并发送到聊天中（MaiBot 版暂不支持文件推送，此开关暂无效）",
-        json_schema_extra={
-            "label": "自动发送 txt",
-            "hint": "MaiBot 版暂不支持文件推送，此开关暂无效",
         },
     )
     enable_read_tool: bool = Field(
@@ -200,10 +192,6 @@ class BiliCaptionPlugin(MaiBotPlugin):
             return self._error_result(e)
 
         subtitle_text = _truncate(subtitle_text, self.config.read_settings.max_subtitle_length)
-        if self.config.read_settings.auto_send_txt:
-            self.ctx.logger.warning(
-                "auto_send_txt 在 MaiBot 版暂不支持文件推送，已降级为纯文本返回"
-            )
         return {"success": True, "content": f"[字幕] {title}\n\n{subtitle_text}"}
 
     @Tool(

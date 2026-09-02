@@ -65,8 +65,6 @@
 git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/maibot_plugin_bilicaption
 ```
 
-> 💡 插件依赖（bilibili-api-python / aiohttp）在 `_manifest.json` 中声明，MaiBot 启动时会自动安装。
-
 ### 第二步：配置 B 站 Cookie（必需）
 
 > 💡 B 站字幕接口需要登录态，**不配置 Cookie 无法获取字幕**（AI 字幕对匿名用户隐藏）。请先配置再使用。
@@ -91,7 +89,6 @@ git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/mai
 | `bilibili_cookie.sessdata` | string | `""` | B 站 SESSDATA Cookie（必需，字幕接口需要登录态） |
 | `bilibili_cookie.bili_jct` | string | `""` | B 站 bili_jct Cookie |
 | `read_settings.max_subtitle_length` | int | `0` | caption 工具字幕最大字符数，`0` 表示不限制 |
-| `read_settings.auto_send_txt` | bool | `false` | ⚠️ MaiBot 版暂不支持 txt 文件推送，此开关暂无效 |
 | `read_settings.enable_read_tool` | bool | `false` | 启用 `bilibili_read` 深度解读工具（高 token 消耗） |
 | `read_settings.read_max_subtitle_length` | int | `0` | read 工具字幕最大字符数，`0` 表示不限制（全文通读） |
 
@@ -101,7 +98,7 @@ git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/mai
 
 ```toml
 [plugin]
-config_version = "1.0.0"
+config_version = "1.0.1"
 enabled = true
 
 [bilibili_cookie]
@@ -110,7 +107,6 @@ bili_jct = "你的bili_jct"
 
 [read_settings]
 max_subtitle_length = 0
-auto_send_txt = false
 enable_read_tool = false
 read_max_subtitle_length = 0
 ```
@@ -158,17 +154,11 @@ A：**需要**。B 站字幕接口要求登录态，请配置 `bilibili_cookie.s
 **Q：所有视频都能获取字幕吗？**
 A：不是。UP 主未上传字幕且 B 站无 AI 字幕的视频无法获取内容，此时会提示「暂无可用字幕」。
 
-**Q：为什么不做 AI 总结？**
-A：`bilibili_caption` 定位就是原文提取。`bilibili_read` 则是把总结权交给 bot 自身，不预制提示词。
-
 **Q：`bilibili_caption` 和 `bilibili_read` 有什么区别？**
 A：caption 快速返回字幕文本让你看；read 把全文喂给 bot 让 bot 自己通读再输出解读。read 费 token 但解读质量更高。两者互不替代，可按需配置开关。
 
 **Q：跟 BiliRead 有什么区别？**
 A：BiliRead 调用第三方 LLM 总结字幕；本插件跳过第三方 LLM，直接返回字幕原文，或利用当前对话的 bot 自身做解读。
-
-**Q：为什么没有 txt 文件推送了？**
-A：MaiBot 插件 SDK 暂不支持文件消息推送，`auto_send_txt` 开关保留但无效；字幕仍以文本返回。
 
 ---
 
