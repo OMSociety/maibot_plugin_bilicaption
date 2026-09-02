@@ -98,7 +98,7 @@ git clone https://github.com/OMSociety/maibot_plugin_bilicaption.git plugins/mai
 
 ```toml
 [plugin]
-config_version = "1.0.1"
+config_version = "1.0.0"
 enabled = true
 
 [bilibili_cookie]

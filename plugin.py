@@ -45,7 +45,7 @@ class PluginBaseConfig(PluginConfigBase):
     __ui_label__ = "插件基础设置"
 
     config_version: str = Field(
-        default="1.0.1",
+        default="1.0.0",
         description="配置版本号",
         json_schema_extra={"label": "配置版本", "disabled": True},
     )
