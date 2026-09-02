@@ -191,7 +191,9 @@ class BiliCaptionPlugin(MaiBotPlugin):
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
-        subtitle_text = _truncate(subtitle_text, self.config.read_settings.max_subtitle_length)
+        subtitle_text = _truncate(
+            subtitle_text, self.config.read_settings.max_subtitle_length
+        )
         return {"success": True, "content": f"[字幕] {title}\n\n{subtitle_text}"}
 
     @Tool(
@@ -224,7 +226,9 @@ class BiliCaptionPlugin(MaiBotPlugin):
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
-        subtitle_text = _truncate(subtitle_text, self.config.read_settings.read_max_subtitle_length)
+        subtitle_text = _truncate(
+            subtitle_text, self.config.read_settings.read_max_subtitle_length
+        )
         return {"success": True, "content": f"[完整字幕] {title}\n\n{subtitle_text}"}
 
 
