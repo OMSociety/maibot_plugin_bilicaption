@@ -154,9 +154,6 @@ A：**需要**。B 站字幕接口要求登录态，请配置 `bilibili_cookie.s
 **Q：所有视频都能获取字幕吗？**
 A：不是。UP 主未上传字幕且 B 站无 AI 字幕的视频无法获取内容，此时会提示「暂无可用字幕」。
 
-**Q：`bilibili_caption` 和 `bilibili_read` 有什么区别？**
-A：caption 快速返回字幕文本让你看；read 把全文喂给 bot 让 bot 自己通读再输出解读。read 费 token 但解读质量更高。两者互不替代，可按需配置开关。
-
 **Q：跟 BiliRead 有什么区别？**
 A：BiliRead 调用第三方 LLM 总结字幕；本插件跳过第三方 LLM，直接返回字幕原文，或利用当前对话的 bot 自身做解读。
 
