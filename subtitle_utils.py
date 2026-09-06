@@ -252,6 +252,10 @@ async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, 
                     f"下载字幕文件失败，HTTP 状态码: {resp.status}"
                 )
             subtitle_json = await resp.json()
+    except aiohttp.ContentTypeError as e:
+        # CDN 偶发返回非 JSON（HTML 错误页等），单列以免落入笼统的"网络请求异常"
+        logger.error(f"字幕内容解析失败（非 JSON 响应）: {e}")
+        raise SubtitleFetchError("字幕内容解析失败，请稍后重试。") from e
     except (aiohttp.ClientError, TimeoutError) as e:
         logger.error(f"网络请求异常: {e}")
         raise SubtitleFetchError("网络请求异常，请稍后重试。") from e
