@@ -173,19 +173,22 @@ async def normalize_bvid(raw: str) -> str:
     return "error"
 
 
-async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, str]:
+async def fetch_subtitle(
+    bvid: str, sessdata: str, bili_jct: str, page: int = 1
+) -> tuple[str, str]:
     """获取视频标题与字幕全文，供各工具复用。
 
     Args:
         bvid: 视频 BVID。
         sessdata: B 站 SESSDATA Cookie（可为空字符串）。
         bili_jct: B 站 bili_jct Cookie（可为空字符串）。
+        page: 分 P 号，从 1 计数；单 P 视频无需传（默认 1）。
 
     Returns:
-        (title, subtitle_text) 元组。
+        (title, subtitle_text) 元组；多分 P 视频的 title 带 "(P{n})" 标注。
 
     Raises:
-        SubtitleFetchError: 网络异常、视频无字幕或解析失败时抛出，
+        SubtitleFetchError: 网络异常、分 P 越界、视频无字幕或解析失败时抛出，
             异常消息可直接展示给用户。
     """
     # B 站字幕接口需要登录态（AI 字幕对匿名用户隐藏），提前给出友好提示
@@ -193,6 +196,10 @@ async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, 
         raise SubtitleFetchError(
             "获取 B 站字幕需要登录态：请在插件配置的「B站Cookie」中填写 SESSDATA 与 bili_jct。"
         )
+
+    # 分 P 号从 1 计数，提前拒绝非法值（LLM 可能传 0 或负数）
+    if page < 1:
+        raise SubtitleFetchError("分 P 号从 1 开始，请提供有效的分 P 号。")
 
     credential = Credential(sessdata=sessdata, bili_jct=bili_jct)
     v = video.Video(bvid, credential=credential)
@@ -202,11 +209,19 @@ async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, 
         info = await v.get_info()
         title = info.get("title", "未知标题")
 
-        # 2. 获取 CID
-        cid = await v.get_cid(0)
+        # 2. 获取 CID：get_cid 内部读取同一份缓存的 info，按 pages 列表取
+        pages = info.get("pages") or []
+        page_count = len(pages) or 1
+        if page > page_count:
+            raise SubtitleFetchError(
+                f"视频《{title}》没有第 {page} 个分 P（共 {page_count} 个分 P）。"
+            )
+        cid = await v.get_cid(page - 1)
 
         # 3. 获取字幕元数据
         subtitle_info = await v.get_subtitle(cid)
+    except SubtitleFetchError:
+        raise
     except aiohttp.ClientError as e:
         logger.error(f"网络请求异常: {e}")
         raise SubtitleFetchError("网络请求异常，请稍后重试。") from e
@@ -268,7 +283,10 @@ async def fetch_subtitle(bvid: str, sessdata: str, bili_jct: str) -> tuple[str, 
     if not raw_text:
         raise SubtitleFetchError(f"视频《{title}》字幕内容解析为空。")
 
-    return title, raw_text
+    # 多分 P 视频在标题行标注分 P（单 P 不加），便于区分字幕来源
+    display_title = f"{title} (P{page})" if page_count > 1 else title
+
+    return display_title, raw_text
 
 
 def _truncate(text: str, max_len: int) -> str:

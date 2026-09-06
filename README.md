@@ -6,7 +6,7 @@
 
 **B 站视频字幕提取与深度解读助手** —— 字幕纯文本提取 · 完整字幕通读 · 链接自动识别 · 长度可控
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/OMSociety/maibot_plugin_bilicaption)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/OMSociety/maibot_plugin_bilicaption)
 [![MaiBot](https://img.shields.io/badge/MaiBot-%E2%89%A51.0-green.svg)](https://github.com/Mai-with-u/MaiBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/maibot_plugin_bilicaption)](https://github.com/OMSociety/maibot_plugin_bilicaption/stargazers)
@@ -134,6 +134,7 @@ read_max_subtitle_length = 0
 | 参数 | 类型 | 必填 | 说明 |
 |:----|:----|:----:|:-----|
 | `bvid` | string | ✅ | BVID / B 站完整链接 / b23.tv 短链，例如 `BV1GJ411x7h7` 或 `https://b23.tv/4bdIZBf` |
+| `page` | integer | ❌ | 分 P 号，从 1 开始，默认 1。单 P 视频无需传 |
 
 ### bilibili_read（需开启配置 `enable_read_tool`）
 通读哔哩哔哩视频的完整字幕以便 bot 解读视频内容。当用户要求总结、分析、评价某个 B 站视频时调用。
@@ -141,6 +142,7 @@ read_max_subtitle_length = 0
 | 参数 | 类型 | 必填 | 说明 |
 |:----|:----|:----:|:-----|
 | `bvid` | string | ✅ | BVID / B 站完整链接 / b23.tv 短链 |
+| `page` | integer | ❌ | 分 P 号，从 1 开始，默认 1。单 P 视频无需传 |
 
 > 注意：`bilibili_read` 返回完整字幕原文，不附加任何预制提示词。由 bot 自行阅读后决定如何解读。
 

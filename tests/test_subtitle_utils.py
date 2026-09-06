@@ -10,12 +10,15 @@ import os
 import sys
 
 import aiohttp
+import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from subtitle_utils import (
+    SubtitleFetchError,
     _clean_subtitle_text,
     _truncate,
+    fetch_subtitle,
     normalize_bvid,
     resolve_b23,
 )
@@ -226,3 +229,100 @@ class TestResolveB23ErrorHandling:
 
         monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", FakeSession)
         assert asyncio.run(resolve_b23("https://b23.tv/abc")) == "error"
+
+
+class TestFetchSubtitlePage:
+    """多分 P 支持：page 参数透传、越界拒绝、标题标注。
+
+    bilibili_api.video.Video 与字幕下载 aiohttp 会话均用桩替代，不触网。
+    """
+
+    SUBTITLE_INFO = {
+        "subtitles": [
+            {"lan": "zh-CN", "subtitle_url": "https://aisubtitle.hdslb.com/test.json"}
+        ]
+    }
+
+    @staticmethod
+    def _make_fake_video(pages):
+        class FakeVideo:
+            cid_calls = []
+
+            def __init__(self, bvid, credential=None):
+                self.bvid = bvid
+
+            async def get_info(self):
+                return {"title": "测试视频", "pages": pages}
+
+            async def get_cid(self, page_index):
+                type(self).cid_calls.append(page_index)
+                return pages[page_index]["cid"]
+
+            async def get_subtitle(self, cid):
+                return TestFetchSubtitlePage.SUBTITLE_INFO
+
+        return FakeVideo
+
+    class _FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def json(self):
+            return {"body": [{"content": "hello"}]}
+
+    class _FakeSession:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        def get(self, *args, **kwargs):
+            return TestFetchSubtitlePage._FakeResponse()
+
+    def _patch(self, monkeypatch, pages):
+        fake_video = self._make_fake_video(pages)
+        monkeypatch.setattr("subtitle_utils.video.Video", fake_video)
+        monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", self._FakeSession)
+        return fake_video
+
+    def test_single_page_no_annotation(self, monkeypatch):
+        """单 P 视频默认路径：标题不带分 P 标注"""
+        self._patch(monkeypatch, [{"cid": 111}])
+        title, text = asyncio.run(fetch_subtitle("BV1GJ411x7h7", "sess", "jct"))
+        assert title == "测试视频"
+        assert "hello" in text
+
+    def test_multi_page_p2_passthrough_and_annotation(self, monkeypatch):
+        """多分 P 取 P2：get_cid 收到 0 起始下标，标题带 (P2) 标注"""
+        fake_video = self._patch(
+            monkeypatch, [{"cid": 111}, {"cid": 222}, {"cid": 333}]
+        )
+        title, _text = asyncio.run(
+            fetch_subtitle("BV1GJ411x7h7", "sess", "jct", page=2)
+        )
+        assert fake_video.cid_calls == [1]
+        assert title == "测试视频 (P2)"
+
+    def test_page_out_of_range_rejected(self, monkeypatch):
+        """越界分 P 返回友好错误而非崩溃"""
+        self._patch(monkeypatch, [{"cid": 111}])
+        with pytest.raises(SubtitleFetchError) as exc_info:
+            asyncio.run(fetch_subtitle("BV1GJ411x7h7", "sess", "jct", page=2))
+        assert "没有第 2 个分 P" in str(exc_info.value)
+        assert "共 1 个分 P" in str(exc_info.value)
+
+    def test_page_zero_rejected(self, monkeypatch):
+        """page < 1 直接拒绝（LLM 可能传 0）"""
+        self._patch(monkeypatch, [{"cid": 111}])
+        with pytest.raises(SubtitleFetchError) as exc_info:
+            asyncio.run(fetch_subtitle("BV1GJ411x7h7", "sess", "jct", page=0))
+        assert "从 1 开始" in str(exc_info.value)

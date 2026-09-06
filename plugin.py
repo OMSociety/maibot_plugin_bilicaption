@@ -147,7 +147,7 @@ class BiliCaptionPlugin(MaiBotPlugin):
         except Exception as e:  # noqa: BLE001 - 开关同步失败不影响主流程
             self.ctx.logger.warning(f"同步 bilibili_read 开关失败: {e}")
 
-    async def _fetch_subtitle(self, bvid_raw: str) -> tuple[str, str]:
+    async def _fetch_subtitle(self, bvid_raw: str, page: int = 1) -> tuple[str, str]:
         """获取并规范化字幕。返回 (title, subtitle_text)。"""
         bvid_raw = (bvid_raw or "").strip()
         if not bvid_raw:
@@ -157,10 +157,16 @@ class BiliCaptionPlugin(MaiBotPlugin):
             raise ValueError(
                 "解析视频链接失败，请检查链接是否正确（支持 B 站完整链接 / BV 号 / b23.tv 短链）。"
             )
+        # 分 P 参数宽松归一：LLM 可能传字符串或 None
+        try:
+            page = int(page) if page is not None else 1
+        except (TypeError, ValueError):
+            raise ValueError(f"分 P 参数无效：{page!r}（应为从 1 开始的整数）。")
         return await fetch_subtitle(
             bvid,
             self.config.bilibili_cookie.sessdata,
             self.config.bilibili_cookie.bili_jct,
+            page=page,
         )
 
     def _error_result(self, e: Exception) -> dict:
@@ -173,7 +179,8 @@ class BiliCaptionPlugin(MaiBotPlugin):
         brief_description="获取B站视频字幕纯文本",
         detailed_description=(
             "参数说明：\n"
-            "- bvid：string，必填。BVID 或 b23.tv 链接，例如 BV1GJ411x7h7 或 https://b23.tv/4bdIZBf。"
+            "- bvid：string，必填。BVID 或 b23.tv 链接，例如 BV1GJ411x7h7 或 https://b23.tv/4bdIZBf。\n"
+            "- page：integer，可选，默认 1。分 P 号，从 1 开始计数；单 P 视频无需传。"
         ),
         parameters=[
             ToolParameterInfo(
@@ -182,12 +189,18 @@ class BiliCaptionPlugin(MaiBotPlugin):
                 description="想要获取的哔哩哔哩视频的BVID或是b23.tv链接，例如BV1GJ411x7h7或https://b23.tv/4bdIZBf",
                 required=True,
             ),
+            ToolParameterInfo(
+                name="page",
+                param_type=ToolParamType.INTEGER,
+                description="分 P 号，从 1 开始计数。单 P 视频无需传；仅当用户明确提到分 P 时才传。",
+                required=False,
+            ),
         ],
     )
-    async def handle_caption(self, bvid: str, **kwargs):
+    async def handle_caption(self, bvid: str, page: int = 1, **kwargs):
         """字幕提取工具：返回字幕纯文本，供展示给用户。"""
         try:
-            title, subtitle_text = await self._fetch_subtitle(bvid)
+            title, subtitle_text = await self._fetch_subtitle(bvid, page=page)
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
@@ -208,7 +221,8 @@ class BiliCaptionPlugin(MaiBotPlugin):
         brief_description="通读B站视频完整字幕以便深度解读",
         detailed_description=(
             "参数说明：\n"
-            "- bvid：string，必填。BVID 或 b23.tv 链接，例如 BV1GJ411x7h7 或 https://b23.tv/4bdIZBf。"
+            "- bvid：string，必填。BVID 或 b23.tv 链接，例如 BV1GJ411x7h7 或 https://b23.tv/4bdIZBf。\n"
+            "- page：integer，可选，默认 1。分 P 号，从 1 开始计数；单 P 视频无需传。"
         ),
         parameters=[
             ToolParameterInfo(
@@ -217,12 +231,18 @@ class BiliCaptionPlugin(MaiBotPlugin):
                 description="想要解读的哔哩哔哩视频的BVID或是b23.tv链接，例如BV1GJ411x7h7或https://b23.tv/4bdIZBf",
                 required=True,
             ),
+            ToolParameterInfo(
+                name="page",
+                param_type=ToolParamType.INTEGER,
+                description="分 P 号，从 1 开始计数。单 P 视频无需传；仅当用户明确提到分 P 时才传。",
+                required=False,
+            ),
         ],
     )
-    async def handle_read(self, bvid: str, **kwargs):
+    async def handle_read(self, bvid: str, page: int = 1, **kwargs):
         """深度解读工具：返回完整字幕原文，由 bot 自行阅读后解读。"""
         try:
-            title, subtitle_text = await self._fetch_subtitle(bvid)
+            title, subtitle_text = await self._fetch_subtitle(bvid, page=page)
         except (ValueError, SubtitleFetchError) as e:
             return self._error_result(e)
 
