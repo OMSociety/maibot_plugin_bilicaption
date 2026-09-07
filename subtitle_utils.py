@@ -54,6 +54,10 @@ class SubtitleFetchError(Exception):
     """字幕获取失败，异常消息可直接作为工具结果返回给用户"""
 
 
+class BvidParseError(SubtitleFetchError):
+    """BV 号 / b23 短链解析失败，异常消息可直接作为工具结果返回给用户"""
+
+
 def _clean_subtitle_text(raw: str) -> str:
     """清洗 B 站字幕正文：还原 <br> 换行、去除其余 HTML 标签、还原常见实体。
 
@@ -90,13 +94,16 @@ def _clean_subtitle_text(raw: str) -> str:
 
 
 async def resolve_b23(short_url: str) -> str:
-    """解析 b23.tv 短链，返回其中的 BVID。失败返回 'error'。
+    """解析 b23.tv 短链，返回其中的 BVID。
 
     Args:
         short_url: b23.tv 短链（可带或不带 https:// 前缀）。
 
     Returns:
-        提取到的 BVID；解析失败返回 "error"。
+        提取到的 BVID。
+
+    Raises:
+        BvidParseError: 非法域名、网络异常或重定向链中未找到 BV 号时抛出。
     """
     if not short_url.startswith("http"):
         short_url = "https://" + short_url
@@ -104,14 +111,19 @@ async def resolve_b23(short_url: str) -> str:
     # 初始 URL 必须是公网 b23 域（用户可控输入，防 SSRF）
     if not _is_safe_b23_url(short_url):
         logger.warning(f"拒绝非 b23 域的短链：{short_url}")
-        return "error"
+        raise BvidParseError("链接不是有效的 b23 短链")
 
     timeout = aiohttp.ClientTimeout(total=10)
+    match = None
     try:
         async with aiohttp.ClientSession(timeout=timeout) as session:
             real_url = short_url
-            # 跟随重定向链，最多 10 跳
-            for _ in range(10):
+            match = BVID_PATTERN.search(real_url)
+            hops = 0
+            # 跟随重定向链，最多 10 跳；任一跳 URL 已含 BV 号即提前停止，
+            # 不再请求最终页面（通常 1~2 跳就到达 /video/BV…）
+            while match is None and hops < 10:
+                hops += 1
                 async with session.get(real_url, allow_redirects=False) as response:
                     next_url = response.headers.get("Location")
                     if not next_url:
@@ -121,23 +133,23 @@ async def resolve_b23(short_url: str) -> str:
                     # 每一跳目标也必须是公网 bilibili 域（防 SSRF：Location 可被诱导到内网）
                     if not _is_safe_b23_url(next_url):
                         logger.warning(f"拒绝短链重定向到非法域：{next_url}")
-                        return "error"
+                        raise BvidParseError("短链重定向到了非法域名")
                     real_url = next_url
+                    match = BVID_PATTERN.search(real_url)
     except (aiohttp.ClientError, TimeoutError) as e:
         logger.warning(f"解析 b23.tv 短链网络异常：{short_url} -> {e}")
-        return "error"
+        raise BvidParseError("解析 b23.tv 短链时网络异常，请稍后重试") from e
 
-    match = BVID_PATTERN.search(real_url)
-    if not match:
+    if match is None:
         logger.warning(f"解析 b23.tv 短链未找到 BV 号：{short_url} -> {real_url}")
-        return "error"
+        raise BvidParseError("短链中未找到 BV 号，请检查链接是否正确")
 
     logger.info(f"解析 b23.tv 短链成功：{short_url} -> {match.group(0)}")
     return match.group(0)
 
 
 async def normalize_bvid(raw: str) -> str:
-    """规范化输入为 BVID，支持 BV 号、完整 B 站链接与 b23 短链。失败返回 'error'。
+    """规范化输入为 BVID，支持 BV 号、完整 B 站链接与 b23 短链。
 
     兼容输入示例：
         BV1GJ411x7h7
@@ -149,15 +161,23 @@ async def normalize_bvid(raw: str) -> str:
         raw: 用户提供的原始链接或 BV 号。
 
     Returns:
-        提取到的 BVID；解析失败返回 "error"。
+        提取到的 BVID。
+
+    Raises:
+        BvidParseError: 输入为空或无法解析出 BV 号时抛出。
     """
     raw = (raw or "").strip()
     if not raw:
-        return "error"
+        raise BvidParseError("请提供 B 站视频链接、BV 号或 b23.tv 短链")
 
-    # 1. b23 短链：按域名判断，优先走短链解析
-    lower = raw.lower()
-    if any(host in lower for host in B23_HOSTS):
+    # 1. b23 短链：urlparse 取 hostname 精确判断（子串匹配会把 URL 路径中
+    #    偶然含 "b23" 的其他链接误路由进短链解析），优先走短链解析
+    candidate = raw if "://" in raw else "https://" + raw
+    try:
+        hostname = (urlparse(candidate).hostname or "").lower()
+    except ValueError:
+        hostname = ""
+    if hostname in B23_HOSTS:
         return await resolve_b23(raw)
 
     # 2. 直接从文本中提取 BV 号（兼容完整链接 / 纯 BV 号 / 带前后缀的文本）
@@ -170,7 +190,7 @@ async def normalize_bvid(raw: str) -> str:
     # 普通文本等）直接判失败，避免对 b23.tv 发起无意义的出站请求。
     if re.fullmatch(r"[A-Za-z0-9]{5,13}", raw):
         return await resolve_b23("https://b23.tv/" + raw)
-    return "error"
+    raise BvidParseError("无法识别的 BV 号或短链")
 
 
 async def fetch_subtitle(
@@ -269,10 +289,13 @@ async def fetch_subtitle(
             subtitle_json = await resp.json()
     except aiohttp.ContentTypeError as e:
         # CDN 偶发返回非 JSON（HTML 错误页等），单列以免落入笼统的"网络请求异常"
-        logger.error(f"字幕内容解析失败（非 JSON 响应）: {e}")
+        logger.error(f"字幕内容解析失败（非 JSON 响应）: {e.message}")
         raise SubtitleFetchError("字幕内容解析失败，请稍后重试。") from e
     except (aiohttp.ClientError, TimeoutError) as e:
-        logger.error(f"网络请求异常: {e}")
+        # 日志脱敏：ClientResponseError.__str__ 会带出含签名的完整字幕 URL，
+        # 只记 message；连接类异常无 message 属性，回退到异常类名
+        detail = getattr(e, "message", "") or type(e).__name__
+        logger.error(f"网络请求异常: {detail}")
         raise SubtitleFetchError("网络请求异常，请稍后重试。") from e
 
     # 5. 解析字幕正文并清洗 HTML 标签

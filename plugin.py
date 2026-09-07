@@ -12,6 +12,7 @@ from maibot_sdk import Field, MaiBotPlugin, PluginConfigBase, Tool
 from maibot_sdk.types import ToolParameterInfo, ToolParamType
 
 from .subtitle_utils import (
+    BvidParseError,
     SubtitleFetchError,
     _truncate,
     fetch_subtitle,
@@ -152,11 +153,12 @@ class BiliCaptionPlugin(MaiBotPlugin):
         bvid_raw = (bvid_raw or "").strip()
         if not bvid_raw:
             raise ValueError("请提供要获取字幕的 B 站视频链接、BV 号或 b23.tv 短链。")
-        bvid = await normalize_bvid(bvid_raw)
-        if bvid == "error":
+        try:
+            bvid = await normalize_bvid(bvid_raw)
+        except BvidParseError as e:
             raise ValueError(
                 "解析视频链接失败，请检查链接是否正确（支持 B 站完整链接 / BV 号 / b23.tv 短链）。"
-            )
+            ) from e
         # 分 P 参数宽松归一：LLM 可能传字符串或 None
         try:
             page = int(page) if page is not None else 1

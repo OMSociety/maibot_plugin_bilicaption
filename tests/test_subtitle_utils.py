@@ -15,6 +15,7 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from subtitle_utils import (
+    BvidParseError,
     SubtitleFetchError,
     _clean_subtitle_text,
     _truncate,
@@ -82,21 +83,13 @@ class TestTruncate:
 class TestNormalizeBvid:
     """链接规范化测试（resolve_b23 用桩替代，避免真实网络请求）"""
 
-    @staticmethod
-    async def _fake_resolve_ok(url: str) -> str:
-        return "BV1GJ411x7h7"
-
-    @staticmethod
-    async def _fake_resolve_error(url: str) -> str:
-        return "error"
-
     def test_pure_bvid(self, monkeypatch):
         """纯 BV 号直接识别，不走短链解析"""
         calls = []
 
         async def fake_resolve(url: str) -> str:
             calls.append(url)
-            return "error"
+            raise BvidParseError("不应触发短链解析")
 
         monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
         assert asyncio.run(normalize_bvid("BV1GJ411x7h7")) == "BV1GJ411x7h7"
@@ -106,7 +99,7 @@ class TestNormalizeBvid:
         """完整 B 站链接应提取出 BV 号（核心修复点）"""
 
         async def fake_resolve(url: str) -> str:
-            return "error"
+            raise BvidParseError("不应触发短链解析")
 
         monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
         raw = "https://www.bilibili.com/video/BV1GJ411x7h7/?spm_id_from=333.999"
@@ -137,23 +130,26 @@ class TestNormalizeBvid:
         assert captured["url"] == "https://b23.tv/4bdIZBf"
 
     def test_empty_input(self, monkeypatch):
-        """空输入返回 error"""
+        """空输入抛 BvidParseError"""
 
         async def fake_resolve(url: str) -> str:
-            return "error"
+            raise BvidParseError("不应触发短链解析")
 
         monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
-        assert asyncio.run(normalize_bvid("")) == "error"
-        assert asyncio.run(normalize_bvid("   ")) == "error"
+        with pytest.raises(BvidParseError):
+            asyncio.run(normalize_bvid(""))
+        with pytest.raises(BvidParseError):
+            asyncio.run(normalize_bvid("   "))
 
     def test_resolve_failure(self, monkeypatch):
-        """短链解析失败时返回 error"""
+        """短链解析失败时抛 BvidParseError"""
 
         async def fake_resolve(url: str) -> str:
-            return "error"
+            raise BvidParseError("短链中未找到 BV 号")
 
         monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
-        assert asyncio.run(normalize_bvid("https://b23.tv/4bdIZBf")) == "error"
+        with pytest.raises(BvidParseError):
+            asyncio.run(normalize_bvid("https://b23.tv/4bdIZBf"))
 
     def test_bv_with_b23_substring_not_misjudged(self, monkeypatch):
         """BV 号含 b23 子串不应被误判为短链（核心修复点）"""
@@ -161,19 +157,47 @@ class TestNormalizeBvid:
 
         async def fake_resolve(url: str) -> str:
             calls.append(url)
-            return "error"
+            raise BvidParseError("不应触发短链解析")
 
         monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
         # BV1b2345678x 含 "b23" 但非短链，应被识别为 BV 号
         assert asyncio.run(normalize_bvid("BV1b2345678x")) == "BV1b2345678x"
         assert calls == []
 
+    def test_b23_substring_in_path_not_routed(self, monkeypatch):
+        """主机名非 b23 域的 URL 不按短链处理（urlparse 按 hostname 精确判断）"""
+        calls = []
+
+        async def fake_resolve(url: str) -> str:
+            calls.append(url)
+            raise BvidParseError("不应触发短链解析")
+
+        monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
+        # 路径含 "b23.tv" 但主机名是 example.com：不当作短链解析，
+        # 也过不了裸短码字符集门禁，直接抛 BvidParseError
+        with pytest.raises(BvidParseError):
+            asyncio.run(normalize_bvid("https://example.com/b23.tv/4bdIZBf"))
+        assert calls == []
+
+    def test_bare_code_gate_rejects_non_code_text(self, monkeypatch):
+        """裸短码门禁：非 5-13 位字母数字的输入直接拒绝，不发请求"""
+        calls = []
+
+        async def fake_resolve(url: str) -> str:
+            calls.append(url)
+            raise BvidParseError("不应触发短链解析")
+
+        monkeypatch.setattr("subtitle_utils.resolve_b23", fake_resolve)
+        with pytest.raises(BvidParseError):
+            asyncio.run(normalize_bvid("这不是一个链接的普通文本"))
+        assert calls == []
+
 
 class TestResolveB23ErrorHandling:
-    """b23 短链解析的网络异常兜底测试"""
+    """b23 短链解析失败路径测试（网络异常/非法域名均抛 BvidParseError）"""
 
-    def test_timeout_returns_error(self, monkeypatch):
-        """超时（TimeoutError）应返回 'error' 而非崩溃"""
+    def test_timeout_raises(self, monkeypatch):
+        """超时（TimeoutError）应抛 BvidParseError 而非崩溃"""
 
         class FakeResponse:
             def __init__(self):
@@ -199,10 +223,11 @@ class TestResolveB23ErrorHandling:
                 return FakeResponse()
 
         monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", FakeSession)
-        assert asyncio.run(resolve_b23("https://b23.tv/abc")) == "error"
+        with pytest.raises(BvidParseError):
+            asyncio.run(resolve_b23("https://b23.tv/abc"))
 
-    def test_connection_error_returns_error(self, monkeypatch):
-        """连接错误（ClientError）应返回 'error' 而非崩溃"""
+    def test_connection_error_raises(self, monkeypatch):
+        """连接错误（ClientError）应抛 BvidParseError 而非崩溃"""
 
         class FakeResponse:
             def __init__(self):
@@ -228,7 +253,91 @@ class TestResolveB23ErrorHandling:
                 return FakeResponse()
 
         monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", FakeSession)
-        assert asyncio.run(resolve_b23("https://b23.tv/abc")) == "error"
+        with pytest.raises(BvidParseError):
+            asyncio.run(resolve_b23("https://b23.tv/abc"))
+
+    def test_unsafe_domain_rejected(self, monkeypatch):
+        """非 b23 域名的输入直接拒绝，不发请求"""
+
+        class _TripwireSession:
+            def __init__(self, *args, **kwargs):
+                raise AssertionError("非法域名不应创建会话发起请求")
+
+        monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", _TripwireSession)
+        with pytest.raises(BvidParseError):
+            asyncio.run(resolve_b23("https://example.com/abc"))
+
+
+class TestResolveB23HopByHop:
+    """#22 逐跳优化：重定向链中途 URL 已含 BV 号即停止，不再请求后续页面"""
+
+    @staticmethod
+    def _make_chain_session(locations):
+        """按请求顺序返回 Location 的桩会话；None 表示该跳无 Location。
+        返回 (FakeSession 类, 实际发出的请求 URL 列表)。"""
+        requested = []
+
+        class FakeResponse:
+            def __init__(self, location):
+                self.headers = {"Location": location} if location else {}
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+        class FakeSession:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                return False
+
+            def get(self, url, *args, **kwargs):
+                requested.append(str(url))
+                index = len(requested) - 1
+                location = locations[index] if index < len(locations) else None
+                return FakeResponse(location)
+
+        return FakeSession, requested
+
+    def test_bv_in_redirect_target_stops_early(self, monkeypatch):
+        """第 1 跳目标已含 BV 号：不再请求视频页本身，直接返回 BVID"""
+        session_cls, requested = self._make_chain_session(
+            [
+                "https://www.bilibili.com/video/BV1GJ411x7h7/",
+                # 若误请求第 2 跳（整页下载）即暴露
+                "https://www.bilibili.com/video/BV1GJ411x7h7/?spm_id_from=1",
+            ]
+        )
+        monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", session_cls)
+        assert asyncio.run(resolve_b23("https://b23.tv/4bdIZBf")) == "BV1GJ411x7h7"
+        assert requested == ["https://b23.tv/4bdIZBf"]
+
+    def test_bv_in_initial_url_no_request(self, monkeypatch):
+        """初始 URL 已含 BV 号（b23.tv/BV… 形式）：一次请求都不发"""
+        session_cls, requested = self._make_chain_session([])
+        monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", session_cls)
+        assert asyncio.run(resolve_b23("https://b23.tv/BV1GJ411x7h7")) == "BV1GJ411x7h7"
+        assert requested == []
+
+    def test_chain_without_bv_raises(self, monkeypatch):
+        """整条链都没出现 BV 号：抛 BvidParseError"""
+        session_cls, requested = self._make_chain_session(
+            [
+                "https://www.bilibili.com/not-a-video",
+                "https://www.bilibili.com/still-no-bv",
+                None,
+            ]
+        )
+        monkeypatch.setattr("subtitle_utils.aiohttp.ClientSession", session_cls)
+        with pytest.raises(BvidParseError):
+            asyncio.run(resolve_b23("https://b23.tv/4bdIZBf"))
+        assert len(requested) == 3
 
 
 class TestFetchSubtitlePage:
