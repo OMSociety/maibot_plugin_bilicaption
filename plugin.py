@@ -6,7 +6,7 @@
 - bilibili_read：完整字幕通读，供 bot 深度解读（默认关闭，配置 enable_read_tool 启用）
 """
 
-from typing import Any
+from typing import Any, ClassVar
 
 from maibot_sdk import Field, MaiBotPlugin, PluginConfigBase, Tool
 from maibot_sdk.types import ToolParameterInfo, ToolParamType
@@ -25,18 +25,52 @@ class BiliCookieConfig(PluginConfigBase):
 
     __ui_label__ = "B站Cookie"
 
+    __ui_i18n__: ClassVar[dict[str, dict[str, str]]] = {
+        "en-US": {
+            "title": "Bilibili Cookie",
+            "description": "Bilibili Cookie settings group",
+        },
+        "ja-JP": {
+            "title": "Bilibili Cookie",
+            "description": "Bilibili Cookie の設定グループ",
+        },
+    }
+
     sessdata: str = Field(
         default="",
         description="B 站 SESSDATA Cookie（字幕接口需要登录态）",
         json_schema_extra={
             "label": "SESSDATA",
             "hint": "B 站登录态 Cookie，字幕接口需要",
+            "i18n": {
+                "en-US": {
+                    "label": "SESSDATA",
+                    "hint": "Bilibili login-state Cookie; required by the subtitle API",
+                },
+                "ja-JP": {
+                    "label": "SESSDATA",
+                    "hint": "Bilibili のログイン状態 Cookie。字幕 API に必要",
+                },
+            },
         },
     )
     bili_jct: str = Field(
         default="",
         description="B 站 bili_jct Cookie",
-        json_schema_extra={"label": "bili_jct", "hint": "B 站 bili_jct Cookie"},
+        json_schema_extra={
+            "label": "bili_jct",
+            "hint": "B 站 bili_jct Cookie",
+            "i18n": {
+                "en-US": {
+                    "label": "bili_jct",
+                    "hint": "Bilibili bili_jct Cookie",
+                },
+                "ja-JP": {
+                    "label": "bili_jct",
+                    "hint": "Bilibili の bili_jct Cookie",
+                },
+            },
+        },
     )
 
 
@@ -45,15 +79,51 @@ class PluginBaseConfig(PluginConfigBase):
 
     __ui_label__ = "插件基础设置"
 
+    __ui_i18n__: ClassVar[dict[str, dict[str, str]]] = {
+        "en-US": {
+            "title": "Plugin Base Settings",
+            "description": "Basic plugin configuration",
+        },
+        "ja-JP": {
+            "title": "プラグイン基本設定",
+            "description": "プラグインの基本構成",
+        },
+    }
+
     config_version: str = Field(
         default="1.0.0",
         description="配置版本号",
-        json_schema_extra={"label": "配置版本", "disabled": True},
+        json_schema_extra={
+            "label": "配置版本",
+            "disabled": True,
+            "i18n": {
+                "en-US": {
+                    "label": "Config version",
+                    "hint": "Configuration version number",
+                },
+                "ja-JP": {
+                    "label": "設定バージョン",
+                    "hint": "設定のバージョン番号",
+                },
+            },
+        },
     )
     enabled: bool = Field(
         default=True,
         description="是否启用插件",
-        json_schema_extra={"label": "启用插件"},
+        json_schema_extra={
+            "label": "启用插件",
+            "i18n": {
+                "en-US": {
+                    "label": "Enable plugin",
+                    "hint": "Whether to enable the plugin",
+                },
+                "ja-JP": {
+                    "label": "プラグインを有効化",
+                    "hint": "プラグインを有効にするかどうか",
+                },
+            },
+        },
     )
 
 
@@ -62,12 +132,33 @@ class ReadSettingsConfig(PluginConfigBase):
 
     __ui_label__ = "读取设置"
 
+    __ui_i18n__: ClassVar[dict[str, dict[str, str]]] = {
+        "en-US": {
+            "title": "Read Settings",
+            "description": "Reading settings",
+        },
+        "ja-JP": {
+            "title": "読み取り設定",
+            "description": "読み取りの設定",
+        },
+    }
+
     max_subtitle_length: int = Field(
         default=0,
         description="bilibili_caption 字幕最大返回长度（字符数），0表示不限制",
         json_schema_extra={
             "label": "字幕返回上限",
             "hint": "字符数，0=不限制",
+            "i18n": {
+                "en-US": {
+                    "label": "Subtitle length limit",
+                    "hint": "Number of characters; 0 = no limit",
+                },
+                "ja-JP": {
+                    "label": "字幕の長さ上限",
+                    "hint": "文字数。0 で無制限",
+                },
+            },
         },
     )
     enable_read_tool: bool = Field(
@@ -76,6 +167,16 @@ class ReadSettingsConfig(PluginConfigBase):
         json_schema_extra={
             "label": "启用深度解读工具",
             "hint": "bilibili_read 高 token 消耗",
+            "i18n": {
+                "en-US": {
+                    "label": "Enable deep-read tool",
+                    "hint": "bilibili_read has high token usage",
+                },
+                "ja-JP": {
+                    "label": "詳細解読ツールを有効化",
+                    "hint": "bilibili_read はトークン消費が大きい",
+                },
+            },
         },
     )
     read_max_subtitle_length: int = Field(
@@ -84,6 +185,16 @@ class ReadSettingsConfig(PluginConfigBase):
         json_schema_extra={
             "label": "通读字幕上限",
             "hint": "字符数，0=全文通读",
+            "i18n": {
+                "en-US": {
+                    "label": "Full-read subtitle limit",
+                    "hint": "Number of characters; 0 = full text",
+                },
+                "ja-JP": {
+                    "label": "通読時の字幕上限",
+                    "hint": "文字数。0 で全文通読",
+                },
+            },
         },
     )
 

@@ -42,6 +42,7 @@
   },
   "capabilities": ["component.enable", "component.disable"],
   "i18n": {
-    "default_locale": "zh-CN"
+    "default_locale": "zh-CN",
+    "supported_locales": ["zh-CN", "en-US", "ja-JP"]
   }
 }
