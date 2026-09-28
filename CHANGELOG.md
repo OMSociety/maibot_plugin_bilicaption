@@ -1,29 +1,39 @@
 # Changelog
 
-本项目所有重要更改都会记录在此文件。
+本项目的更改记录在此文件。
+
+All notable changes to this project are documented in this file.
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [1.1.0] - 2026-09-14
 
-### 新增 (Added)
+### 新增
 
 - **配置界面多语言（en-US / ja-JP）**：WebUI 配置页的字段标题、提示与占位文本、分区标题与分区描述按界面语言自动切换（宿主界面语言支持中文/英文/日文/韩文，无对应译文时回退中文），manifest 声明 `supported_locales`。
 - 新增配置界面 i18n 回归测试：离线生成配置 Schema，校验各语言覆盖率、数值一致与技术标识符保全。
 
+### Added
+
+- **Multilingual config UI (en-US / ja-JP)**: field labels, hints and placeholder texts, section titles and section descriptions on the WebUI config page switch automatically with the interface language (the host interface language supports Chinese/English/Japanese/Korean, falling back to Chinese when no translation exists), and the manifest declares `supported_locales`.
+- Added a config UI i18n regression test: it generates the config Schema offline and verifies per-language coverage, value consistency and preservation of technical identifiers.
+
 ## [1.0.1] - 2026-09-07
 
-### 新增 (Added)
+### 新增
 
 - **多分 P 视频字幕支持**：`bilibili_caption` / `bilibili_read` 新增可选参数 `page`（分 P 号，从 1 开始计数，默认 1），可获取多分 P 视频指定分 P 的字幕；多分 P 视频的返回标题行标注分 P（如 `[字幕] 标题 (P2)`），单 P 视频保持原样。分 P 越界时返回友好提示（如「视频《…》没有第 3 个分 P（共 2 个分 P）」）。
 
-### 修复 (Fixed)
+### 修复
 
 - 修复裸短码兜底对任意非链接文本发起网络请求的问题：输入不含 BV 号、不含短链域名时，仅对 5-13 位字母数字的疑似短码走 b23.tv 解析，其余直接判失败（与 AstrBot 版同步）。
 - 字幕下载异常日志脱敏：网络异常对象经 `ClientResponseError.__str__` 输出时会把含签名的完整字幕 URL 写进日志，现改为只记录异常消息，防止签名泄露到日志。
 
-### 变更 (Changed)
+### 变更
 
 - b23.tv 短链解析逐跳优化：重定向链中任一跳的 URL 已含 BV 号即提前返回，不再继续请求最终视频页面；短链域名改用 urlparse 按 hostname 精确判断（原先的子串匹配会把路径中偶然含 "b23" 的链接误路由进短链解析）。
 - 链接解析失败改为抛出 `BvidParseError` 异常（原先以返回值 `"error"` 作为失败信号），对用户的错误提示保持不变。
