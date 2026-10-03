@@ -59,7 +59,7 @@ MaiBot WebUI → 插件市场 → 搜索 `bilicaption`
 
 ### 第二步：配置 B 站 Cookie（必需）
 
-> **提示：**B 站字幕接口需要登录态，**不配置 Cookie 无法获取字幕**（AI 字幕对匿名用户隐藏）。请先配置再使用。
+> **提示**：B 站字幕接口需要登录态，**不配置 Cookie 无法获取字幕**（AI 字幕对匿名用户隐藏）。请先配置再使用。
 
 在插件配置的 `bilibili_cookie` 分组中填写：
 
@@ -136,7 +136,7 @@ read_max_subtitle_length = 0
 | `bvid` | string | 是 | BVID / B 站完整链接 / b23.tv 短链 |
 | `page` | integer | 否 | 分 P 号，从 1 开始，默认 1。单 P 视频无需传 |
 
-> **注意：**`bilibili_read` 返回完整字幕原文，不附加任何预制提示词。由 bot 自行阅读后决定如何解读。
+> **注意**：`bilibili_read` 返回完整字幕原文，不附加任何预制提示词。由 bot 自行阅读后决定如何解读。
 
 ---
 
