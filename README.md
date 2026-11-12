@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/OMSociety/maibot_plugin_bilicaption/main/logo.png" width="120" alt="BiliCaption Logo" />
-
-# BiliCaption B站字幕提取解读
+<h1><img src="https://raw.githubusercontent.com/OMSociety/maibot_plugin_bilicaption/main/logo.png" width="192" alt="BiliCaption Logo"><br>BiliCaption B站字幕提取解读</h1>
 
 **B 站视频字幕提取与深度解读助手** —— 字幕纯文本提取 · 完整字幕通读 · 链接自动识别 · 长度可控
 
