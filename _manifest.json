@@ -24,7 +24,7 @@
     {
       "type": "python_package",
       "name": "bilibili-api-python",
-      "version_spec": ">=16.0.0,<18.0.0"
+      "version_spec": ">=17.0.0,<18.0.0"
     },
     {
       "type": "python_package",
