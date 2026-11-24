@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 新增
 
+- 字幕择优：同一视频有多条字幕时，语言匹配的人工字幕优先于语言匹配的 AI 字幕，其次才是其它语言的字幕；默认偏好中文。
 - 配置页扫码登录：WebUI 配置页提供二维码、状态行、“获取登录二维码”与“退出登录”控件；凭据保存在插件数据目录的 `credential.json`。
 - 链接识别新增 av 号（`av170001` / 纯数字 / `/video/av…` 链接）、`bili2233.cn` 短链与整段分享文本。
 - 链接中的 `?p=N` 自动作为分 P 号。
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Subtitle selection: when a video has several subtitle tracks, a manual track in the preferred language comes before an AI track in that language, and tracks in other languages come last; the preferred language defaults to Chinese.
 - QR-code login on the config page: the WebUI config page provides a QR code, a status line, and "Get login QR code" / "Log out" controls; credentials are stored in `credential.json` under the plugin data directory.
 - Link recognition now covers av numbers (`av170001`, bare digits, `/video/av…` links), `bili2233.cn` short links, and whole share texts.
 - `?p=N` in a link is used as the part number.

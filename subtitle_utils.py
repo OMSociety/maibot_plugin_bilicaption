@@ -352,8 +352,31 @@ def _api_error(e: ResponseCodeException, bvid: str) -> SubtitleFetchError:
     return SubtitleFetchError(f"B 站接口返回错误（返回码 {e.code}）。")
 
 
+def _is_ai_subtitle(item: dict) -> bool:
+    return str(item.get("lan", "")).startswith("ai-") or item.get("type") == 1
+
+
+def pick_subtitle(subtitles: list[dict], language: str = "zh") -> dict:
+    """在字幕轨中择优：语言匹配且为人工 > 语言匹配的 AI > 其它语言人工 > 其它语言 AI。
+
+    B 站 AI 字幕的 lan 形如 "ai-zh"，type 为 1；language 按去掉 "ai-" 后的前缀匹配。
+    同一档内保持接口返回顺序。
+    """
+    prefix = language.strip().lower()
+
+    def rank(item: dict) -> int:
+        lan = str(item.get("lan", "")).lower().removeprefix("ai-")
+        matched = bool(prefix) and lan.startswith(prefix)
+        return (0 if matched else 2) + (1 if _is_ai_subtitle(item) else 0)
+
+    return min(subtitles, key=rank)
+
+
 async def fetch_subtitle(
-    bvid: str, credential: Credential | None, page: int = 1
+    bvid: str,
+    credential: Credential | None,
+    page: int = 1,
+    language: str = "zh",
 ) -> SubtitleResult:
     """获取视频标题与字幕全文。
 
@@ -361,6 +384,7 @@ async def fetch_subtitle(
         bvid: 视频 BVID。
         credential: B 站登录凭据；None 表示未登录。
         page: 分 P 号，从 1 计数；单 P 视频无需传（默认 1）。
+        language: 偏好的字幕语言前缀（如 "zh"、"en"），见 pick_subtitle。
 
     Returns:
         SubtitleResult；多分 P 视频的 title 带 "(P{n})" 标注。
@@ -416,11 +440,7 @@ async def fetch_subtitle(
             f"视频《{display_title}》没有字幕（UP 主未上传，也没有 B 站 AI 字幕）。"
         )
 
-    # 优先寻找中文字幕 (zh-CN, zh-Hans)，兜底取第一个
-    target_subtitle = next(
-        (s for s in subtitle_info["subtitles"] if s.get("lan", "").startswith("zh")),
-        subtitle_info["subtitles"][0],
-    )
+    target_subtitle = pick_subtitle(subtitle_info["subtitles"], language)
 
     subtitle_url = target_subtitle.get("subtitle_url", "")
     if not subtitle_url:
@@ -470,15 +490,18 @@ async def load_subtitle(
     page: int | None,
     credential: Credential | None,
     cache: SubtitleCache,
+    language: str = "zh",
 ) -> SubtitleResult:
     """解析视频引用并取字幕，优先读缓存；page 为 None 时取链接中的分 P，缺省为 1。"""
     ref = await parse_video_ref(video)
     target_page = page if page is not None else (ref.page or 1)
-    key = f"{ref.bvid}:{target_page}"
+    key = f"{ref.bvid}:{target_page}:{language}"
     cached = cache.get(key)
     if cached is not None:
         return cached
-    result = await fetch_subtitle(ref.bvid, credential, page=target_page)
+    result = await fetch_subtitle(
+        ref.bvid, credential, page=target_page, language=language
+    )
     cache.put(key, result)
     return result
 

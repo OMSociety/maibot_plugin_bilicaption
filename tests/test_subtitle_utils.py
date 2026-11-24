@@ -260,7 +260,7 @@ class TestLoadSubtitle:
     async def test_cache_shared_across_pages_and_forms(self, monkeypatch):
         calls = []
 
-        async def fake_fetch(bvid, credential, page=1):
+        async def fake_fetch(bvid, credential, page=1, language="zh"):
             calls.append((bvid, page))
             return SubtitleResult("t", "text")
 
@@ -274,3 +274,44 @@ class TestLoadSubtitle:
         )
         await su.load_subtitle("BV17x411w7KC", 2, cred, cache)
         assert calls == [("BV17x411w7KC", 1), ("BV17x411w7KC", 2)]
+
+
+class TestPickSubtitle:
+    def test_human_beats_ai_same_language(self):
+        subs = [{"lan": "ai-zh", "type": 1}, {"lan": "zh-CN", "type": 0}]
+        assert su.pick_subtitle(subs)["lan"] == "zh-CN"
+
+    def test_type_flag_marks_ai_without_prefix(self):
+        subs = [{"lan": "zh-Hans", "type": 1}, {"lan": "zh-CN", "type": 0}]
+        assert su.pick_subtitle(subs)["lan"] == "zh-CN"
+
+    def test_language_match_beats_other_language_human(self):
+        subs = [{"lan": "en", "type": 0}, {"lan": "ai-zh", "type": 1}]
+        assert su.pick_subtitle(subs)["lan"] == "ai-zh"
+
+    def test_preferred_language_en(self):
+        subs = [{"lan": "zh-CN"}, {"lan": "ai-en", "type": 1}, {"lan": "en"}]
+        assert su.pick_subtitle(subs, "en")["lan"] == "en"
+
+    def test_fallback_to_first_when_nothing_matches(self):
+        subs = [{"lan": "ai-ja", "type": 1}, {"lan": "ja"}]
+        assert su.pick_subtitle(subs)["lan"] == "ja"
+
+    def test_ties_keep_api_order(self):
+        subs = [{"lan": "zh-Hans"}, {"lan": "zh-CN"}]
+        assert su.pick_subtitle(subs)["lan"] == "zh-Hans"
+
+    @pytest.mark.asyncio
+    async def test_language_is_part_of_cache_key(self, monkeypatch):
+        calls = []
+
+        async def fake_fetch(bvid, credential, page=1, language="zh"):
+            calls.append(language)
+            return SubtitleResult("t", language)
+
+        monkeypatch.setattr(su, "fetch_subtitle", fake_fetch)
+        cache = SubtitleCache(60, 8)
+        await su.load_subtitle("BV17x411w7KC", None, object(), cache, "zh")
+        await su.load_subtitle("BV17x411w7KC", None, object(), cache, "en")
+        await su.load_subtitle("BV17x411w7KC", None, object(), cache, "en")
+        assert calls == ["zh", "en"]
