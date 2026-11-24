@@ -163,3 +163,22 @@ class TestSession:
             assert v.state is q.QrState.ERROR and v.message == "申请失败"
 
         asyncio.run(run())
+
+
+def test_cookies_fall_back_to_set_cookie_when_url_lacks_them():
+    url = "https://passport.biligame.com/x/passport-login/web/crossDomain?DedeUserID=42&gourl=x"
+    got = q.cookies_from_success_url(
+        url, {"SESSDATA": "sess%2Cabc", "bili_jct": "jct123"}
+    )
+    assert got == {"sessdata": "sess,abc", "bili_jct": "jct123", "dedeuserid": "42"}
+
+
+def test_url_values_take_precedence_over_set_cookie():
+    url = "https://x/?SESSDATA=fromurl&bili_jct=j1"
+    got = q.cookies_from_success_url(url, {"SESSDATA": "fromcookie"})
+    assert got["sessdata"] == "fromurl"
+
+
+def test_missing_everywhere_still_raises():
+    with pytest.raises(q.QrLoginError):
+        q.cookies_from_success_url("https://x/?DedeUserID=1", {})

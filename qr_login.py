@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 import aiohttp
 import qrcode
@@ -142,21 +142,33 @@ def make_qr_data_url(content: str) -> str:
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
-def cookies_from_success_url(url: str) -> dict[str, str]:
-    """从登录成功返回的跳转 URL 查询串中取出 Cookie 字段。"""
+_COOKIE_FIELDS = {
+    "sessdata": "SESSDATA",
+    "bili_jct": "bili_jct",
+    "dedeuserid": "DedeUserID",
+}
+
+
+def cookies_from_success_url(
+    url: str, set_cookies: dict[str, str] | None = None
+) -> dict[str, str]:
+    """取出登录凭据：优先用成功跳转 URL 查询串，缺失的字段由响应 Set-Cookie 补齐。"""
     query = parse_qs(urlparse(url).query)
-    mapping = {
-        "sessdata": "SESSDATA",
-        "bili_jct": "bili_jct",
-        "dedeuserid": "DedeUserID",
+    extra = set_cookies or {}
+    cookies = {
+        k: (query.get(v) or [""])[0] or unquote(extra.get(v, ""))
+        for k, v in _COOKIE_FIELDS.items()
     }
-    cookies = {k: (query.get(v) or [""])[0] for k, v in mapping.items()}
     if not cookies["sessdata"] or not cookies["bili_jct"]:
         raise QrLoginError("登录成功但响应中缺少 SESSDATA 或 bili_jct。")
     return cookies
 
 
-def interpret_poll(data: dict, refresh_token: str = "") -> PollResult:
+def interpret_poll(
+    data: dict,
+    refresh_token: str = "",
+    set_cookies: dict[str, str] | None = None,
+) -> PollResult:
     """把 poll 接口 data 段映射为状态；未知返回码抛 QrLoginError。"""
     code = data.get("code")
     if code == 86101:
@@ -166,7 +178,7 @@ def interpret_poll(data: dict, refresh_token: str = "") -> PollResult:
     if code == 86038:
         return PollResult(QrState.EXPIRED)
     if code == 0:
-        cookies = cookies_from_success_url(str(data.get("url", "")))
+        cookies = cookies_from_success_url(str(data.get("url", "")), set_cookies)
         cookies["ac_time_value"] = refresh_token or str(data.get("refresh_token", ""))
         return PollResult(QrState.SUCCESS, cookies)
     raise QrLoginError(f"B 站扫码登录返回未知状态码 {code}。")
@@ -174,12 +186,14 @@ def interpret_poll(data: dict, refresh_token: str = "") -> PollResult:
 
 async def _get_json(
     session: aiohttp.ClientSession, url: str, params: dict | None = None
-) -> dict:
+) -> tuple[dict, dict[str, str]]:
+    """GET 并解析 JSON，同时返回本次响应 Set-Cookie 的键值。"""
     try:
         async with session.get(url, params=params) as resp:
             if resp.status != 200:
                 raise QrLoginError(f"B 站登录接口 HTTP 状态码 {resp.status}。")
             body = await resp.json(content_type=None)
+            set_cookies = {k: m.value for k, m in resp.cookies.items()}
     except QrLoginError:
         raise
     except (aiohttp.ClientError, TimeoutError, ValueError) as e:
@@ -187,14 +201,14 @@ async def _get_json(
         raise QrLoginError("连接 B 站登录接口失败或超时，请稍后重试。") from e
     if not isinstance(body, dict):
         raise QrLoginError("B 站登录接口返回了无法识别的数据。")
-    return body
+    return body, set_cookies
 
 
 async def generate_ticket(clock=time.time) -> QrTicket:
     """申请新的登录二维码。"""
     timeout = aiohttp.ClientTimeout(total=6)
     async with aiohttp.ClientSession(timeout=timeout, headers=_HEADERS) as session:
-        body = await _get_json(session, QR_GENERATE_URL)
+        body, _ = await _get_json(session, QR_GENERATE_URL)
     data = body.get("data") or {}
     url, key = data.get("url"), data.get("qrcode_key")
     if body.get("code") != 0 or not url or not key:
@@ -206,11 +220,13 @@ async def poll_ticket(ticket: QrTicket) -> PollResult:
     """查询二维码当前的扫码状态。"""
     timeout = aiohttp.ClientTimeout(total=6)
     async with aiohttp.ClientSession(timeout=timeout, headers=_HEADERS) as session:
-        body = await _get_json(session, QR_POLL_URL, {"qrcode_key": ticket.key})
+        body, set_cookies = await _get_json(
+            session, QR_POLL_URL, {"qrcode_key": ticket.key}
+        )
     data = body.get("data")
     if body.get("code") != 0 or not isinstance(data, dict):
         raise QrLoginError(f"查询扫码状态失败（返回码 {body.get('code')}）。")
-    return interpret_poll(data)
+    return interpret_poll(data, set_cookies=set_cookies)
 
 
 @dataclass(frozen=True)
