@@ -83,9 +83,9 @@ class TestSectionI18nCoverage:
     def test_three_sections_rendered(self, schema):
         """三个嵌套配置类都应渲染为配置节（无 general 兜底节）"""
         assert sorted(schema["sections"].keys()) == [
-            "bilibili_cookie",
+            "cache",
             "plugin",
-            "read_settings",
+            "view",
         ]
 
     def test_section_title_description_covered(self, schema):
@@ -137,7 +137,7 @@ class TestFieldI18nCoverage:
                     assert not extra, (
                         f"字段 {field_name} i18n[{locale}] 存在多余键: {extra}"
                     )
-        assert checked == 7
+        assert checked == 5
 
 
 class TestTranslationDiscipline:
@@ -216,8 +216,8 @@ class TestTranslationDiscipline:
                 )
 
     def test_ja_not_identical_to_base_unless_technical(self, schema):
-        """ja 译文与 base 逐字相等仅允许纯技术串（SESSDATA / bili_jct）"""
-        allowed_technical = {"SESSDATA", "bili_jct"}
+        """ja 译文与 base 逐字相等仅允许纯技术串"""
+        allowed_technical = set()
         for path, key, base_text, locale, text in self._iter_translations(schema):
             if locale == "ja-JP" and text and text == base_text:
                 assert base_text in allowed_technical, (

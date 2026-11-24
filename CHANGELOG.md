@@ -10,6 +10,53 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-24
+
+### 新增
+
+- 配置页扫码登录：WebUI 配置页提供二维码、状态行、“获取登录二维码”与“退出登录”控件；凭据保存在插件数据目录的 `credential.json`。
+- 链接识别新增 av 号（`av170001` / 纯数字 / `/video/av…` 链接）、`bili2233.cn` 短链与整段分享文本。
+- 链接中的 `?p=N` 自动作为分 P 号。
+- 长度保护：超限时保留开头 60% 与结尾 40%，提示总长与省略比例；新增 `offset` 参数从任意位置翻页读取。
+- 字幕缓存：默认有效期 1 小时、最多 64 条，过期条目顺带清理，超出容量淘汰最久未使用的条目；配置项 `cache.ttl_seconds`、`cache.max_entries`。
+- 失败原因细化：视频不存在、没有字幕、该分 P 没有字幕、登录失效、风控、短链非 B 站域、网络超时分别返回具体提示。
+- 新增 `AGENTS.md`。
+
+### 变更
+
+- 对 LLM 暴露的工具统一为 `bili_view`（参数 `video`、`page`、`offset`），默认启用，无需开关。
+- 配置结构调整为 `plugin` / `view` / `cache` 三组；`view.max_chars` 默认 20000。
+- manifest 声明收窄：宿主 `1.4.8~1.4.99`，SDK `2.23.0~2.23.99`；依赖新增 `qrcode`、`pillow`。
+- 单元测试覆盖链接解析、SSRF 校验、缓存、长度保护、失败原因映射与扫码状态机。
+
+### 移除
+
+- 移除工具 `bilibili_caption` 与 `bilibili_read`。
+- 移除配置项 `bilibili_cookie.sessdata`、`bilibili_cookie.bili_jct`、`read_settings.*`。
+- 移除 manifest 能力声明 `component.enable`、`component.disable`。
+
+### Added
+
+- QR-code login on the config page: the WebUI config page provides a QR code, a status line, and "Get login QR code" / "Log out" controls; credentials are stored in `credential.json` under the plugin data directory.
+- Link recognition now covers av numbers (`av170001`, bare digits, `/video/av…` links), `bili2233.cn` short links, and whole share texts.
+- `?p=N` in a link is used as the part number.
+- Length protection: over-limit text keeps the first 60% and last 40% and reports the total length and omitted ratio; the new `offset` parameter pages through any position.
+- Subtitle cache: default TTL of 1 hour and up to 64 entries; expired entries are purged on access and the least recently used entry is evicted when over capacity; options `cache.ttl_seconds` and `cache.max_entries`.
+- Specific failure reasons: video not found, no subtitles, no subtitles for this part, login expired, risk control, short link outside Bilibili domains, and network timeout each return a distinct message.
+- Added `AGENTS.md`.
+
+### Changed
+
+- The tool exposed to the LLM is unified as `bili_view` (parameters `video`, `page`, `offset`), enabled by default with no switch.
+- Config restructured into `plugin` / `view` / `cache` groups; `view.max_chars` defaults to 20000.
+- Manifest ranges narrowed: host `1.4.8~1.4.99`, SDK `2.23.0~2.23.99`; dependencies add `qrcode` and `pillow`.
+- Unit tests cover link parsing, SSRF validation, cache, length protection, failure-reason mapping, and the QR login state machine.
+
+### Removed
+
+- Removed tools `bilibili_caption` and `bilibili_read`.
+- Removed config options `bilibili_cookie.sessdata`, `bilibili_cookie.bili_jct`, and `read_settings.*`.
+- Removed manifest capabilities `component.enable` and `component.disable`.
 ## [1.1.0] - 2026-09-14
 
 ### 新增
@@ -40,3 +87,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 依赖 `bilibili-api-python` 锁定上限版本 `<17.0.0`，避免上游大版本破坏性变更导致插件静默失效。
 - 移除不可达的 Cookie 异常分支（行为不变）。
 - 新增短链逐跳解析、裸短码门禁、分 P 参数透传/越界与异常路径回归测试（19 → 29 用例）。
+

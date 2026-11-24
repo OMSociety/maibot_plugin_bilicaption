@@ -1,9 +1,9 @@
 {
   "manifest_version": 2,
   "id": "omsociety.bilicaption",
-  "version": "1.1.0",
-  "name": "B站字幕提取解读",
-  "description": "提供获取B站视频字幕文本、解读视频内容的 LLM 工具，自动识别消息中的 B 站链接/BV 号/b23 短链",
+  "version": "1.2.0",
+  "name": "B站视频字幕解读",
+  "description": "提供 bili_view 工具：按 BV 号、av 号、视频链接或短链读取 B 站视频字幕，供 bot 理解与总结视频内容；登录凭据通过配置页扫码获得",
   "author": {
     "name": "OMSociety",
     "url": "https://github.com/OMSociety"
@@ -13,12 +13,12 @@
     "repository": "https://github.com/OMSociety/maibot_plugin_bilicaption"
   },
   "host_application": {
-    "min_version": "1.0.0",
-    "max_version": "1.99.99"
+    "min_version": "1.4.8",
+    "max_version": "1.4.99"
   },
   "sdk": {
-    "min_version": "1.0.0",
-    "max_version": "2.99.99"
+    "min_version": "2.23.0",
+    "max_version": "2.23.99"
   },
   "dependencies": [
     {
@@ -30,6 +30,16 @@
       "type": "python_package",
       "name": "aiohttp",
       "version_spec": ">=3.8.0"
+    },
+    {
+      "type": "python_package",
+      "name": "qrcode",
+      "version_spec": ">=7.4"
+    },
+    {
+      "type": "python_package",
+      "name": "pillow",
+      "version_spec": ">=10.0.0"
     }
   ],
   "plugin_type": "tool",
@@ -40,9 +50,13 @@
       "fallback": "package"
     }
   },
-  "capabilities": ["component.enable", "component.disable"],
+  "capabilities": [],
   "i18n": {
     "default_locale": "zh-CN",
-    "supported_locales": ["zh-CN", "en-US", "ja-JP"]
+    "supported_locales": [
+      "zh-CN",
+      "en-US",
+      "ja-JP"
+    ]
   }
 }

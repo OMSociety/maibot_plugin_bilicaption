@@ -1,20 +1,20 @@
 <div align="center">
 
-<h1><img src="https://raw.githubusercontent.com/OMSociety/maibot_plugin_bilicaption/main/logo.png" width="192" alt="BiliCaption Logo"><br>BiliCaption B站字幕提取解读</h1>
+<h1><img src="https://raw.githubusercontent.com/OMSociety/maibot_plugin_bilicaption/main/logo.png" width="192" alt="BiliCaption Logo"><br>BiliCaption B站视频字幕解读</h1>
 
-**B 站视频字幕提取与深度解读助手** —— 字幕纯文本提取 · 完整字幕通读 · 链接自动识别 · 长度可控
+**B 站视频字幕读取助手** —— 扫码登录 · 多格式链接识别 · 长度保护与翻页 · 字幕缓存
 
 [![Version](https://img.shields.io/github/v/tag/OMSociety/maibot_plugin_bilicaption?label=version&color=blue)](https://github.com/OMSociety/maibot_plugin_bilicaption/releases)
-[![MaiBot](https://img.shields.io/badge/MaiBot-%E2%89%A51.0-green.svg)](https://github.com/Mai-with-u/MaiBot)
+[![MaiBot](https://img.shields.io/badge/MaiBot-%E2%89%A51.4.8-green.svg)](https://github.com/Mai-with-u/MaiBot)
 [![License](https://img.shields.io/badge/license-AGPL--3.0-orange.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/OMSociety/maibot_plugin_bilicaption)](https://github.com/OMSociety/maibot_plugin_bilicaption/stargazers)
 [![Issues](https://img.shields.io/github/issues/OMSociety/maibot_plugin_bilicaption)](https://github.com/OMSociety/maibot_plugin_bilicaption/issues)
 
-[核心特性](#核心特性) • [功能概览](#功能概览) • [快速开始](#快速开始) • [配置项说明](#配置项说明) • [LLM 可调用工具](#llm-可调用工具) • [常见问题](#常见问题) • [更新日志](CHANGELOG.md)
+[核心特性](#核心特性) • [快速开始](#快速开始) • [配置项说明](#配置项说明) • [LLM 可调用工具](#llm-可调用工具) • [常见问题](#常见问题) • [更新日志](CHANGELOG.md)
 
 </div>
 
-> 本项目由 AI 编写 · 由 AstrBot 插件 [OMSociety/astrbot_plugin_bilicaption](https://github.com/OMSociety/astrbot_plugin_bilicaption) 迁移而来 · 源码基于 [SodaCodeSave/astrbot_plugin_biliread](https://github.com/SodaCodeSave/astrbot_plugin_biliread) 二次开发
+> 本项目由 AI 编写 · 与 AstrBot 插件 [OMSociety/astrbot_plugin_bilicaption](https://github.com/OMSociety/astrbot_plugin_bilicaption) 共用同一套字幕逻辑 · 源码基于 [SodaCodeSave/astrbot_plugin_biliread](https://github.com/SodaCodeSave/astrbot_plugin_biliread) 二次开发
 
 ---
 
@@ -22,30 +22,12 @@
 
 | 特性 | 说明 |
 |------|------|
-| **字幕纯文本提取** | 提取 B 站视频字幕原文，不做 AI 总结，直接返回给用户 |
-| **深度字幕通读** | 完整字幕喂给 bot 自身，由 bot 自行解读 / 总结视频内容（可选，高 token 消耗） |
-| **链接智能识别** | 支持 B 站完整链接 / BV 号 / b23.tv 短链 / 裸短码，自动识别解析 |
-| **长度控制** | 两个工具可分别配置字幕最大返回长度，防止上下文溢出 |
-| **登录态支持** | 配置 B 站 Cookie 后获取完整 AI 字幕（字幕接口需要登录态） |
-
----
-
-## 功能概览
-
-### 字幕提取 bilibili_caption
-聊天中直接发 B 站链接 / BV 号，bot 自动调用工具返回字幕纯文本。
-
-### 深度解读 bilibili_read
-开启后，要求 bot 解读视频时自动通读完整字幕再组织语言。
-
-### 两个工具的区别
-
-| 特性 | `bilibili_caption` | `bilibili_read` |
-|:----|:-------------------|:----------------|
-| 定位 | 快速提取字幕原文 | 为 bot 自身阅读做深度解读 |
-| 返回 | 字幕文本，供 AI 展示给用户 | 完整字幕，喂入 bot 思考流 |
-| token 消耗 | 可控（可截断） | 较高（默认全文通读） |
-| 是否默认启用 | 始终可用 | 默认关闭，需开启配置 |
+| **字幕读取** | 读取 B 站视频字幕原文，交给 bot 理解、总结、评价或回答视频相关问题 |
+| **链接多格式识别** | BV 号 / av 号 / 完整链接（含 `?p=` 分 P）/ b23.tv、bili2233.cn 短链 / 整段分享文本 |
+| **扫码登录** | 在 WebUI 插件配置页用 B 站 App 扫码登录，凭据保存在插件数据目录，不写入配置文件 |
+| **长度保护** | 字幕超过单次上限时保留开头与结尾，并提示总长与省略比例；用 `offset` 翻页读取任意位置 |
+| **字幕缓存** | 同一视频短时间内重复读取直接命中缓存；过期条目顺带清理，超出容量淘汰最久未使用的条目 |
+| **明确的失败原因** | 链接无法识别、视频不存在、没有字幕、该分 P 没有字幕、登录失效、风控、网络超时分别给出具体提示 |
 
 ---
 
@@ -55,20 +37,15 @@
 
 MaiBot WebUI → 插件市场 → 搜索 `bilicaption`
 
-### 第二步：配置 B 站 Cookie（必需）
+### 第二步：扫码登录（必需）
 
-> **提示**：B 站字幕接口需要登录态，**不配置 Cookie 无法获取字幕**（AI 字幕对匿名用户隐藏）。请先配置再使用。
+> **提示**：B 站字幕接口需要登录态，未登录无法读取字幕（AI 字幕对匿名用户隐藏）。
 
-在插件配置的 `bilibili_cookie` 分组中填写：
+1. 打开 MaiBot WebUI → 插件管理 → BiliCaption → 配置页。
+2. 点击“获取登录二维码”，用 B 站 App 扫码并在手机上确认。
+3. 状态行显示“已登录”即完成。二维码约 170 秒有效，过期后重新获取。
 
-| 字段 | 获取方式 |
-|:----|:----|
-| `sessdata` | 浏览器登录 [bilibili.com](https://www.bilibili.com) → F12 → Application → Cookies → 复制 `SESSDATA` 的值 |
-| `bili_jct` | 同上，复制 `bili_jct` 的值 |
-
-### 第三步：重启生效
-
-配置完成后在 WebUI 重载插件（或重启 MaiBot），即可在对话中发送 B 站链接测试。
+凭据保存在插件数据目录的 `credential.json`；点击“退出登录”会删除该文件。
 
 ---
 
@@ -76,85 +53,72 @@ MaiBot WebUI → 插件市场 → 搜索 `bilicaption`
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |:------|:-----|:-------|:-----|
-| `bilibili_cookie.sessdata` | string | `""` | B 站 SESSDATA Cookie（必需，字幕接口需要登录态） |
-| `bilibili_cookie.bili_jct` | string | `""` | B 站 bili_jct Cookie |
-| `read_settings.max_subtitle_length` | int | `0` | caption 工具字幕最大字符数，`0` 表示不限制 |
-| `read_settings.enable_read_tool` | bool | `false` | 启用 `bilibili_read` 深度解读工具（高 token 消耗） |
-| `read_settings.read_max_subtitle_length` | int | `0` | read 工具字幕最大字符数，`0` 表示不限制（全文通读） |
-
-### 快速配置模板
-
-在 MaiBot WebUI 插件配置面板填写，或参考以下 `config.toml` 结构（插件目录下，首次加载自动生成）：
+| `view.max_chars` | int | `20000` | `bili_view` 单次返回的字幕最大字符数，`0` 表示不限制 |
+| `cache.ttl_seconds` | int | `3600` | 字幕缓存有效期（秒），`0` 关闭缓存 |
+| `cache.max_entries` | int | `64` | 字幕缓存最大条数 |
 
 ```toml
 [plugin]
-config_version = "1.0.0"
+config_version = "1.2.0"
 enabled = true
 
-[bilibili_cookie]
-sessdata = "你的SESSDATA"
-bili_jct = "你的bili_jct"
+[view]
+max_chars = 20000
 
-[read_settings]
-max_subtitle_length = 0
-enable_read_tool = false
-read_max_subtitle_length = 0
+[cache]
+ttl_seconds = 3600
+max_entries = 64
 ```
 
 ---
 
 ## LLM 可调用工具
 
-插件注册 2 个 LLM 工具（`bilibili_read` 需开启配置 `enable_read_tool`），模型会自动判断何时调用，你只需用自然语言说需求：
+插件注册 1 个 LLM 工具 `bili_view`，模型自行判断何时调用：
 
 ```
-用户: 帮我提取这个视频的字幕 https://b23.tv/4bdIZBf
-🤖 → bilibili_caption(bvid=https://b23.tv/4bdIZBf)
+用户: 总结一下这个视频 https://b23.tv/4bdIZBf
+bot → bili_view(video="https://b23.tv/4bdIZBf")
     [字幕] 《人工智能发展简史：从图灵到 GPT》
-    大家好，欢迎来到本期视频...
-
-用户: 解读一下这个视频 BV1GJ411x7h7
-🤖 → bilibili_read(bvid=BV1GJ411x7h7)
-    （通读完整字幕后自行组织语言输出解读）
+    （全文 8421 字符，已完整展示）
 ```
 
-### bilibili_caption
-获取哔哩哔哩视频的字幕纯文本。如果视频没有字幕则返回提示信息。
+### bili_view
 
 | 参数 | 类型 | 必填 | 说明 |
 |:----|:----|:----:|:-----|
-| `bvid` | string | 是 | BVID / B 站完整链接 / b23.tv 短链，例如 `BV1GJ411x7h7` 或 `https://b23.tv/4bdIZBf` |
-| `page` | integer | 否 | 分 P 号，从 1 开始，默认 1。单 P 视频无需传 |
+| `video` | string | 是 | BV 号、av 号、视频链接、短链或分享文本 |
+| `page` | integer | 否 | 分 P 号，从 1 开始；链接已带 `p` 参数或单 P 视频无需传 |
+| `offset` | integer | 否 | 从全文第 offset 个字符起连续读取一段；结果提示字幕被省略时用于读取后续内容 |
 
-### bilibili_read（需开启配置 `enable_read_tool`）
-通读哔哩哔哩视频的完整字幕以便 bot 解读视频内容。当用户要求总结、分析、评价某个 B 站视频时调用。
-
-| 参数 | 类型 | 必填 | 说明 |
-|:----|:----|:----:|:-----|
-| `bvid` | string | 是 | BVID / B 站完整链接 / b23.tv 短链 |
-| `page` | integer | 否 | 分 P 号，从 1 开始，默认 1。单 P 视频无需传 |
-
-> **注意**：`bilibili_read` 返回完整字幕原文，不附加任何预制提示词。由 bot 自行阅读后决定如何解读。
+字幕不超过 `view.max_chars` 时整段返回。超过时返回开头 60% 与结尾 40%，结果中给出省略区间与建议的 `offset`；带 `offset` 调用则返回从该位置起的连续一段，并给出 `next_offset`。
 
 ---
 
 ## 常见问题
 
-**Q：需要配置吗？**
-A：**需要**。B 站字幕接口要求登录态，请配置 `bilibili_cookie.sessdata` 与 `bili_jct`（获取方式见[快速开始](#快速开始)）。
+**Q：所有视频都能读到字幕吗？**
+A：不是。UP 主未上传字幕且 B 站没有生成 AI 字幕的视频，会返回“没有字幕”的明确提示。
 
-**Q：所有视频都能获取字幕吗？**
-A：不是。UP 主未上传字幕且 B 站无 AI 字幕的视频无法获取内容，此时会提示「暂无可用字幕」。
+**Q：提示登录失效怎么办？**
+A：回到配置页，点击“退出登录”后重新扫码。
 
 **Q：跟 BiliRead 有什么区别？**
-A：BiliRead 调用第三方 LLM 总结字幕；本插件跳过第三方 LLM，直接返回字幕原文，或利用当前对话的 bot 自身做解读。
+A：BiliRead 调用第三方 LLM 总结字幕；本插件直接把字幕交给当前对话的 bot 自行解读。
+
+## 开发
+
+```
+pip install -r requirements-dev.txt
+ruff format . && ruff check . && pytest
+```
 
 ## 支持与致谢
 
 如果这个插件对你有帮助，欢迎点亮 Star，有问题和建议请提交 [Issue](https://github.com/OMSociety/maibot_plugin_bilicaption/issues) 或 [Pull Request](https://github.com/OMSociety/maibot_plugin_bilicaption/pulls)。
 
 - [MaiBot](https://github.com/Mai-with-u/MaiBot) 开源聊天机器人框架
-- [AstrBot](https://github.com/AstrBotDevs/AstrBot) 上游 AstrBot 插件框架
+- [AstrBot](https://github.com/AstrBotDevs/AstrBot) 姊妹插件所在框架
 - [SodaCodeSave/astrbot_plugin_biliread](https://github.com/SodaCodeSave/astrbot_plugin_biliread) 上游插件（AGPL-3.0）
 
 ## 许可证与作者
